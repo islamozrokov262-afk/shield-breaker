@@ -18,8 +18,8 @@ public class ShieldBreakMixin {
         if (target instanceof PlayerEntity targetPlayer && targetPlayer.isBlocking()) {
             int axeSlot = ShieldBreakerMod.findAxeSlot(player);
             if (axeSlot != -1) {
-                originalSlot = player.getInventory().selectedSlot;
-                player.getInventory().selectedSlot = axeSlot;
+                originalSlot = player.getInventory().getSelectedSlot();
+                player.getInventory().setSelectedSlot(axeSlot);
             }
         }
     }
@@ -27,7 +27,7 @@ public class ShieldBreakMixin {
     @Inject(method = "attackEntity", at = @At("RETURN"))
     private void onAttackReturn(PlayerEntity player, Entity target, CallbackInfo ci) {
         if (originalSlot != -1) {
-            player.getInventory().selectedSlot = originalSlot;
+            player.getInventory().setSelectedSlot(originalSlot);
             originalSlot = -1;
         }
     }
