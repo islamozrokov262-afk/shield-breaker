@@ -1,21 +1,21 @@
 package com.islamozroko.shieldbreaker.mixin;
 
 import com.islamozroko.shieldbreaker.ShieldBreakerMod;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ClientPlayerInteractionManager.class)
+@Mixin(MultiPlayerGameMode.class)
 public class ShieldBreakMixin {
     private static int originalSlot = -1;
 
-    @Inject(method = "attackEntity", at = @At("HEAD"))
-    private void onAttackHead(PlayerEntity player, Entity target, CallbackInfo ci) {
-        if (target instanceof PlayerEntity targetPlayer && targetPlayer.isBlocking()) {
+    @Inject(method = "attack", at = @At("HEAD"))
+    private void onAttackHead(Player player, Entity target, CallbackInfo ci) {
+        if (target instanceof Player targetPlayer && targetPlayer.isBlocking()) {
             int axeSlot = ShieldBreakerMod.findAxeSlot(player);
             if (axeSlot != -1) {
                 originalSlot = player.getInventory().getSelectedSlot();
@@ -24,8 +24,8 @@ public class ShieldBreakMixin {
         }
     }
 
-    @Inject(method = "attackEntity", at = @At("RETURN"))
-    private void onAttackReturn(PlayerEntity player, Entity target, CallbackInfo ci) {
+    @Inject(method = "attack", at = @At("RETURN"))
+    private void onAttackReturn(Player player, Entity target, CallbackInfo ci) {
         if (originalSlot != -1) {
             player.getInventory().setSelectedSlot(originalSlot);
             originalSlot = -1;
