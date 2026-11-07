@@ -11,7 +11,6 @@ public class ShieldBreakerMod implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Логика перенесена в миксин
     }
 
     public static void setTarget(Entity target) {
