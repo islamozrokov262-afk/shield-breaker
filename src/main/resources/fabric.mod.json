@@ -3,11 +3,14 @@
   "id": "shieldbreaker",
   "version": "1.0.0",
   "name": "Fast Shield Breaker",
-  "description": "Instant swap to axe on shield",
+  "description": "Мгновенно ломает щит при его поднятии",
   "authors": ["Islam"],
   "entrypoints": {
     "client": [
       "com.islamozroko.shieldbreaker.ShieldBreakerMod"
+    ],
+    "modmenu": [
+      "com.islamozroko.shieldbreaker.ShieldBreakerModMenu"
     ]
   },
   "mixins": [
@@ -16,6 +19,9 @@
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": "~1.21.11",
-    "java": ">=21"
+    "java": ">=21",
+    "fabric-api": "*",
+    "cloth-config": "*",
+    "modmenu": "*"
   }
 }
