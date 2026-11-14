@@ -3,6 +3,7 @@ package com.islamozroko.shieldbreaker.mixin;
 import com.islamozroko.shieldbreaker.ShieldBreakerMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
@@ -20,49 +21,46 @@ public class ShieldBreakMixin {
     
     private static long lastBreakTime = 0;
 
+    // Ловим ЛЮБЫЕ пакеты событий сущностей, чтобы понять, приходит ли нужный
     @Inject(method = "handleEntityEvent", at = @At("TAIL"))
     private void onEntityEvent(ClientboundEntityEventPacket packet, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null || mc.getConnection() == null) return;
 
-        // 35 - ID события "Начал использовать предмет" (поднял щит)
-        if (packet.getEventId() != 35) return;
+        // Отладка: пишем в чат ID события (только для теста!)
+        // Если увидишь 35 - значит пакет приходит.
+        if (packet.getEventId() == 35) {
+            mc.player.displayClientMessage(Component.literal("§e[DEBUG] Пойман пакет 35!"), true);
+            
+            Entity entity = packet.getEntity(mc.level);
+            if (entity instanceof Player target && target != mc.player) {
+                if (target.distanceTo(mc.player) <= 4.0) {
+                    if (target.getUseItem().getItem() == Items.SHIELD) {
+                        
+                        long now = System.currentTimeMillis();
+                        if (now - lastBreakTime < ShieldBreakerMod.getConfig().breakDelay) return;
+                        lastBreakTime = now;
 
-        Entity entity = packet.getEntity(mc.level);
-        if (!(entity instanceof Player target)) return;
-        if (target == mc.player) return;
-        
-        // Проверяем дистанцию
-        if (target.distanceTo(mc.player) > 4.0) return;
+                        int axeSlot = ShieldBreakerMod.getConfig().axeSlot;
 
-        // Проверяем щит
-        if (!(target.getUseItem().getItem() == Items.SHIELD)) return;
+                        if (!(mc.player.getInventory().getItem(axeSlot).getItem() instanceof AxeItem)) {
+                            mc.player.displayClientMessage(Component.literal("§c[DEBUG] В слоте " + axeSlot + " нет топора!"), true);
+                            return; 
+                        }
 
-        // Кулдаун
-        long now = System.currentTimeMillis();
-        if (now - lastBreakTime < ShieldBreakerMod.getConfig().breakDelay) return;
-        lastBreakTime = now;
+                        int oldSlot = mc.player.getInventory().getSelectedSlot();
 
-        int axeSlot = ShieldBreakerMod.getConfig().axeSlot;
-
-        // Проверяем, что в слоте реально топор
-        if (!(mc.player.getInventory().getItem(axeSlot).getItem() instanceof AxeItem)) {
-            return; 
+                        mc.getConnection().send(new ServerboundSetCarriedItemPacket(axeSlot));
+                        mc.getConnection().send(ServerboundInteractPacket.createAttackPacket(target, false));
+                        mc.getConnection().send(new ServerboundSetCarriedItemPacket(oldSlot));
+                        
+                        mc.player.getInventory().setSelectedSlot(axeSlot);
+                        mc.player.getInventory().setSelectedSlot(oldSlot);
+                        
+                        mc.player.displayClientMessage(Component.literal("§a[DEBUG] Отправлен пакет ломания!"), true);
+                    }
+                }
+            }
         }
-
-        int oldSlot = mc.player.getInventory().getSelectedSlot();
-
-        // 1. Свапаем на топор
-        mc.getConnection().send(new ServerboundSetCarriedItemPacket(axeSlot));
-        
-        // 2. Бьем
-        mc.getConnection().send(ServerboundInteractPacket.createAttackPacket(target, false));
-        
-        // 3. Возвращаем меч
-        mc.getConnection().send(new ServerboundSetCarriedItemPacket(oldSlot));
-        
-        // Визуальный свап для синхронизации
-        mc.player.getInventory().setSelectedSlot(axeSlot);
-        mc.player.getInventory().setSelectedSlot(oldSlot);
     }
 }
