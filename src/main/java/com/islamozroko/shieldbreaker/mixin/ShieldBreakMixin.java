@@ -24,7 +24,7 @@ public class ShieldBreakMixin {
         if (!(target instanceof Player targetPlayer)) return;
         if (!targetPlayer.isBlocking()) return;
 
-        int axeSlot = ShieldBreakerMod.AXE_SLOT;
+        int axeSlot = ShieldBreakerMod.getConfig().axeSlot;
         
         if (player.getInventory().getItem(axeSlot).getItem() instanceof AxeItem) {
             ci.cancel(); 
