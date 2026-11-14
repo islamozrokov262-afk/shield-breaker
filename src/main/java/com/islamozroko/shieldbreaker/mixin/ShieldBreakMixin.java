@@ -18,48 +18,50 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientPacketListener.class)
 public class ShieldBreakMixin {
     
-    // Задержка, чтобы не спамить пакетами (античит запалит)
     private static long lastBreakTime = 0;
 
     @Inject(method = "handleEntityEvent", at = @At("TAIL"))
     private void onEntityEvent(ClientboundEntityEventPacket packet, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null) return;
+        if (mc.player == null || mc.level == null || mc.getConnection() == null) return;
 
-        // 35 - это ID события "Начал использовать предмет" (поднял щит)
+        // 35 - ID события "Начал использовать предмет" (поднял щит)
         if (packet.getEventId() != 35) return;
 
         Entity entity = packet.getEntity(mc.level);
         if (!(entity instanceof Player target)) return;
         if (target == mc.player) return;
         
-        // Проверяем дистанцию (до 4 блоков)
+        // Проверяем дистанцию
         if (target.distanceTo(mc.player) > 4.0) return;
 
-        // Проверяем, что у врага реально в руке щит
+        // Проверяем щит
         if (!(target.getUseItem().getItem() == Items.SHIELD)) return;
 
-        // Кулдаун 200 мс, чтобы не отправлять 100 пакетов в секунду
+        // Кулдаун
         long now = System.currentTimeMillis();
-        if (now - lastBreakTime < 200) return;
+        if (now - lastBreakTime < ShieldBreakerMod.getConfig().breakDelay) return;
         lastBreakTime = now;
 
-        // Ищем топор в хотбаре
-        int axeSlot = ShieldBreakerMod.findAxeSlot(mc.player);
-        if (axeSlot == -1) return;
+        int axeSlot = ShieldBreakerMod.getConfig().axeSlot;
+
+        // Проверяем, что в слоте реально топор
+        if (!(mc.player.getInventory().getItem(axeSlot).getItem() instanceof AxeItem)) {
+            return; 
+        }
 
         int oldSlot = mc.player.getInventory().getSelectedSlot();
 
-        // 1. Свапаем на топор (отправляем пакет серверу)
+        // 1. Свапаем на топор
         mc.getConnection().send(new ServerboundSetCarriedItemPacket(axeSlot));
         
-        // 2. Наносим удар (отправляем пакет серверу)
+        // 2. Бьем
         mc.getConnection().send(ServerboundInteractPacket.createAttackPacket(target, false));
         
-        // 3. Возвращаем меч обратно (отправляем пакет серверу)
+        // 3. Возвращаем меч
         mc.getConnection().send(new ServerboundSetCarriedItemPacket(oldSlot));
         
-        // Визуально свапаем на клиенте, чтобы сервер и клиент не рассинхронились
+        // Визуальный свап для синхронизации
         mc.player.getInventory().setSelectedSlot(axeSlot);
         mc.player.getInventory().setSelectedSlot(oldSlot);
     }
