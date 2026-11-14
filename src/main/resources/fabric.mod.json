@@ -3,7 +3,7 @@
   "id": "shieldbreaker",
   "version": "1.0.0",
   "name": "Fast Shield Breaker",
-  "description": "Мгновенно ломает щит при его поднятии",
+  "description": "Мгновенно ломает щит",
   "authors": ["Islam"],
   "entrypoints": {
     "client": [
